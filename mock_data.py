@@ -46,9 +46,19 @@ def has_grievance_pending() -> bool:
     return _effective_config().get("scenario") == "grievance_pending"
 
 
-def is_identity_match(digits_provided: str) -> bool:
+def is_mobile_match(digits_provided: str) -> bool:
     cleaned = re.sub(r"\D", "", digits_provided.strip())
     return cleaned == str(_effective_config()["registeredMobileLastFour"])
+
+
+def is_account_match(digits_provided: str) -> bool:
+    cleaned = re.sub(r"\D", "", digits_provided.strip())
+    return cleaned == str(_effective_config()["accountEnding"])
+
+
+def is_identity_match(mobile_last_four: str, account_last_four: str) -> bool:
+    """Identity is confirmed only when both the mobile and account last four match."""
+    return is_mobile_match(mobile_last_four) and is_account_match(account_last_four)
 
 
 def get_scenario() -> str:

@@ -22,22 +22,30 @@ def _get_outcome_log() -> OutcomeLog | None:
 
 @function_tool()
 async def verify_borrower_identity(
-    digits: Annotated[
+    mobile_last_four: Annotated[
         str,
         Field(description="The last four digits of the borrower's registered mobile number."),
     ],
+    account_last_four: Annotated[
+        str,
+        Field(description="The last four digits of the borrower's account number."),
+    ],
     context: RunContext,
 ) -> str:
-    """Verify the borrower's identity using the last four digits of their registered mobile number."""
+    """Verify the borrower's identity using the last four digits of both their registered mobile number and their account number."""
     _ = context
     outcome_log = _get_outcome_log()
-    if mock_data.is_identity_match(digits):
+    if mock_data.is_identity_match(mobile_last_four, account_last_four):
         if outcome_log is not None:
             outcome_log.identity_verified = True
         logger.info("Identity verification succeeded")
         return "Thank you, your identity has been confirmed."
     logger.info("Identity verification failed — digits did not match")
-    return "I'm sorry, those digits don't match what we have on file. Could you please try again?"
+    return (
+        "I'm sorry, those details don't match what we have on file. "
+        "Could you please give me the last four digits of your registered mobile number "
+        "and your account number again?"
+    )
 
 
 @function_tool()
@@ -138,4 +146,4 @@ async def end_call_wrong_person(
         outcome_log.amount_disclosed = False
         outcome_log.outcome = "identity_mismatch"
     logger.info("Call ended — wrong person or identity mismatch")
-    return "I apologise for the interruption. Have a good day, goodbye."
+    return "I apologise for the interruption. Have a good day."

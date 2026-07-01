@@ -119,8 +119,9 @@ SAMPLE_EXCHANGES: dict[str, list[tuple[str, str]]] = {
         ("AGENT", "Hello, this is Asha, an automated payment assistance agent from NovaFin. "
                   "This call may be recorded for quality and compliance. Am I speaking with Ramesh?"),
         ("USER",  "Yes, this is Ramesh."),
-        ("AGENT", "Could I ask for the last four digits of your registered mobile number?"),
-        ("USER",  "1 2 3 4"),
+        ("AGENT", "Could I ask for the last four digits of your registered mobile number "
+                  "and the last four digits of your account number?"),
+        ("USER",  "Mobile is 1 2 3 4, account is 4 3 2 1."),
         ("AGENT", "[calls verify_borrower_identity] Your identity has been confirmed. "
                   "You have an outstanding payment of Rs.8,390 due on June 5, 2026. "
                   "Would you like me to send the payment link to your registered number?"),

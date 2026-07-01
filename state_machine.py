@@ -34,6 +34,7 @@ ALLOWED_ACTIONS: dict[CallState, list[str]] = {
     ],
     CallState.IDENTITY_VERIFICATION: [
         "ask for the last four digits of the registered mobile number",
+        "ask for the last four digits of the account number",
         "call verify_borrower_identity",
     ],
     CallState.PAYMENT_CONTEXT: [

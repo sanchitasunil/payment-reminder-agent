@@ -137,8 +137,6 @@ class PaymentAgent(Agent):
 
 
 def prewarm(proc: JobProcess) -> None:
-    """Load VAD weights and create the Murf streaming TTS for calls.
-    """
     proc.userdata["vad"] = silero.VAD.load()
     proc.userdata["tts"] = murf.TTS(voice=_VOICE, locale=_LOCALE, streaming=True)
 
@@ -301,7 +299,7 @@ async def _loop_health_monitor(t0: float, stop: asyncio.Event) -> None:
     import psutil
 
     proc = psutil.Process()
-    proc.cpu_percent(None)   # prime the counter
+    proc.cpu_percent(None)
     psutil.cpu_percent(None)
     interval = 0.25
     worst = 0.0
@@ -332,7 +330,7 @@ async def entrypoint(ctx: JobContext) -> None:
         auto_subscribe=AutoSubscribe.AUDIO_ONLY if is_phone else AutoSubscribe.SUBSCRIBE_ALL,
     )
     logger.info("Connected to %s (%.1fs)", ctx.room.name, time.monotonic() - t0)
-
+ 
     # Diagnostic: watch for event-loop starvation, which stretches/breaks audio.
     _loop_stop = asyncio.Event()
     _loop_mon_task = asyncio.create_task(_loop_health_monitor(t0, _loop_stop))
@@ -402,9 +400,8 @@ async def entrypoint(ctx: JobContext) -> None:
     session = AgentSession(
         stt=openai.STT(model="gpt-realtime-whisper", use_realtime=True, language="en", api_key=config.OPENAI_API_KEY) if config.STT_PROVIDER == "openai"
         else deepgram.STT(model="nova-3", language="en-IN"),
-        llm=google.LLM(model="gemini-2.5-flash") if config.LLM_PROVIDER == "gemini"
-        else openai.LLM(model="gpt-4o-mini", api_key=config.OPENAI_API_KEY) if config.LLM_PROVIDER == "openai"
-        else openai.LLM(model="kimi-k2.5", base_url="https://opencode.ai/zen/go/v1", api_key=config.OPENCODE_API_KEY),
+        llm=openai.LLM(model="gpt-4o-mini", api_key=config.OPENAI_API_KEY) if config.LLM_PROVIDER == "openai"
+        else google.LLM(model="gemini-2.5-flash", api_key=config.GOOGLE_API_KEY),
         tts=tts_instance,
         vad=ctx.proc.userdata["vad"],
     )

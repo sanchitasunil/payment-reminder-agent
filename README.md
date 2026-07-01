@@ -13,7 +13,7 @@ An outbound AI voice agent that calls borrowers, verifies their identity, presen
 ## What it does
 
 - **Dials outbound** via Twilio PSTN → LiveKit SIP outbound trunk, speaks with Murf Falcon TTS
-- **Verifies borrower identity** using the last four digits of their registered mobile number before disclosing any account details
+- **Verifies borrower identity** using the last four digits of both their registered mobile number and their account number before disclosing any account details
 - **Presents payment context** — amount due, due date, and a payment link sent to their registered number
 - **Records a promise to pay** with a commitment date when the borrower agrees
 - **Stops the payment flow immediately** if the borrower disputes, reports hardship, asks to stop being called, or requests a human
@@ -71,7 +71,7 @@ run.py
 ```
 PRE_CALL_CHECK
   → OPENING_DISCLOSURE       (agent introduces itself, asks "Am I speaking with <name>?")
-    → IDENTITY_VERIFICATION  (last four digits of registered mobile)
+    → IDENTITY_VERIFICATION  (last four digits of registered mobile + account number)
       → PAYMENT_CONTEXT      (amount, due date, offer payment link)
         → INTENT_CLASSIFICATION
           → SEND_PAYMENT_LINK  → PROMISE_TO_PAY  → CALL_SUMMARY
@@ -143,7 +143,7 @@ python run.py --csv reminders.csv --mode parallel
 | `STT_PROVIDER` | `deepgram` (default) or `openai` |
 | `DEEPGRAM_API_KEY` | [console.deepgram.com](https://console.deepgram.com) — if `STT_PROVIDER=deepgram` |
 | `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com) — if `STT_PROVIDER=openai` or `LLM_PROVIDER=openai` |
-| `LLM_PROVIDER` | `gemini` (default), `openai`, or `opencode` |
+| `LLM_PROVIDER` | `openai` (default), or `gemini` |
 | `GOOGLE_API_KEY` | [aistudio.google.com](https://aistudio.google.com) — if `LLM_PROVIDER=gemini` |
 | `OPENCODE_API_KEY` | [opencode.ai](https://opencode.ai) — if `LLM_PROVIDER=opencode` |
 | `LIVEKIT_SIP_OUTBOUND_TRUNK_ID` | Run `python scripts/setup_outbound_trunk.py` once |
