@@ -29,7 +29,7 @@ An outbound AI voice agent that calls borrowers, verifies their identity, presen
 ```
 payment-reminder/
 ├── agent.py              # LiveKit agent worker (entrypoint, session, greeting)
-├── run.py                # Main CLI — single call, CSV campaign, or text-mode test
+├── run.py                # Main CLI — single call or CSV campaign
 ├── config.py             # Environment variable loading and validation
 ├── mock_data.py          # Per-call config (scenario_config.json + dispatch metadata)
 ├── guardrails.py         # Pre-call checks and utterance-level compliance rules

@@ -13,7 +13,6 @@ import asyncio
 import json
 import logging
 import os
-import sys
 import time
 
 from dotenv import load_dotenv
@@ -169,7 +168,6 @@ async def _dial_and_greet(
     t0: float,
     opening_line: str,
     phone_number: str,
-    text_mode: bool = False,
 ) -> None:
     """Outbound flow: dial the user, wait until they answer, then greet with zero ringback."""
     from livekit import api as lk_api
@@ -253,12 +251,9 @@ async def _dial_and_greet(
     await asyncio.wait_for(handle.wait_for_playout(), timeout=60.0)
     logger.info("Opening greeting played at %.1fs", time.monotonic() - t0)
 
-    if not text_mode:
-        # Activate STT so the agent can listen to the user's spoken reply.
-        session.room_io.set_participant(participant.identity)
-        logger.info("STT activated at %.1fs", time.monotonic() - t0)
-    else:
-        logger.info("Text mode — STT not activated, waiting for terminal input")
+    # Activate STT so the agent can listen to the user's spoken reply.
+    session.room_io.set_participant(participant.identity)
+    logger.info("STT activated at %.1fs", time.monotonic() - t0)
 
 
 async def _greet_phone_caller(
@@ -266,7 +261,6 @@ async def _greet_phone_caller(
     session: AgentSession,
     t0: float,
     opening_line: str,
-    text_mode: bool = False,
 ) -> None:
     """Inbound fallback: SIP participant created by dispatch rule, greet when they join."""
     participant: rtc.RemoteParticipant | None = None
@@ -292,11 +286,8 @@ async def _greet_phone_caller(
     await asyncio.wait_for(handle.wait_for_playout(), timeout=60.0)
     logger.info("Opening greeting played at %.1fs", time.monotonic() - t0)
 
-    if not text_mode:
-        session.room_io.set_participant(participant.identity)
-        logger.info("STT activated at %.1fs", time.monotonic() - t0)
-    else:
-        logger.info("Text mode — STT not activated")
+    session.room_io.set_participant(participant.identity)
+    logger.info("STT activated at %.1fs", time.monotonic() - t0)
 
 
 async def _loop_health_monitor(t0: float, stop: asyncio.Event) -> None:
@@ -380,8 +371,6 @@ async def entrypoint(ctx: JobContext) -> None:
             "scenario":                  job_meta.get("scenario", call_cfg["scenario"]),
         }
 
-    text_mode = bool(job_meta.get("text_mode"))
-
     # Bind this call's config so parallel campaigns each see their own data
     # (mock_data._effective_config() reads this context var instead of the file).
     from mock_data import set_call_context_config
@@ -460,7 +449,7 @@ async def entrypoint(ctx: JobContext) -> None:
     ctx.room.on("disconnected", _on_room_disconnected)
 
     def _process_user_turn(utterance: str) -> None:
-        """Apply state machine transitions and record a user turn. Called from STT and text mode."""
+        """Apply state machine transitions and record a user turn. Called from STT."""
         nonlocal identity_verified
         if not utterance:
             return
@@ -497,26 +486,6 @@ async def entrypoint(ctx: JobContext) -> None:
 
         call_session.add_turn("user", utterance)
 
-    async def _stdin_reader_task() -> None:
-        """Text mode: read caller responses from stdin and inject into the session."""
-        loop = asyncio.get_event_loop()
-        print("\n[TEXT MODE] Type the caller's response and press Enter (Ctrl+D to end):\n")
-        while ctx.room.isconnected():
-            try:
-                line = await loop.run_in_executor(None, sys.stdin.readline)
-                if not line:  # EOF / Ctrl+D
-                    break
-                text = line.strip()
-                if not text:
-                    continue
-                print(f"[You]: {text}")
-                _process_user_turn(text)
-                await session.generate_reply(user_input=text)
-            except (EOFError, KeyboardInterrupt):
-                break
-            except Exception as exc:
-                logger.warning("Text input error: %s", exc)
-
     @session.on("user_input_transcribed")
     def on_user_input_transcribed(event: UserInputTranscribedEvent) -> None:
         if event.is_final and event.transcript:
@@ -528,8 +497,6 @@ async def entrypoint(ctx: JobContext) -> None:
         if item.type == "message" and item.role == "assistant":
             text = item.text_content
             if text:
-                if text_mode:
-                    print(f"\n[Agent]: {text}\n")
                 prohibited, phrase = guardrails.is_prohibited_language(text)
                 if prohibited:
                     logger.warning(
@@ -543,20 +510,13 @@ async def entrypoint(ctx: JobContext) -> None:
     if is_phone:
         try:
             if outbound_phone:
-                await _dial_and_greet(ctx, session, t0, opening_line, outbound_phone, text_mode)
+                await _dial_and_greet(ctx, session, t0, opening_line, outbound_phone)
             else:
-                await _greet_phone_caller(ctx, session, t0, opening_line, text_mode)
+                await _greet_phone_caller(ctx, session, t0, opening_line)
         except asyncio.TimeoutError:
             logger.error("Phone call timed out")
         except Exception:
             logger.exception("Phone call failed")
-        if text_mode:
-            asyncio.create_task(_stdin_reader_task())
-    elif text_mode:
-        # Test mode: no phone call — print the greeting and take over stdin
-        print(f"\n[Agent]: {opening_line}\n")
-        call_session.add_turn("agent", opening_line)
-        asyncio.create_task(_stdin_reader_task())
 
     while ctx.room.isconnected():
         await asyncio.sleep(0.25)

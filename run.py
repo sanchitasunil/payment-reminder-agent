@@ -90,7 +90,7 @@ def _format_inr(amount_str: str) -> str:
     return f"₹{amount:,}"
 
 
-def _row_to_meta(row: dict, text_mode: bool = False) -> dict:
+def _row_to_meta(row: dict) -> dict:
     due_date = row["due_date"].strip()
     amount   = row["amount_due"].strip()
     return {
@@ -102,7 +102,6 @@ def _row_to_meta(row: dict, text_mode: bool = False) -> dict:
         "days_past_due":               _days_past_due(due_date),
         "account_ending":              row["account_ending"].strip(),
         "registered_mobile_last_four": row["registered_mobile_last_four"].strip(),
-        "text_mode":                   text_mode,
     }
 
 
@@ -209,7 +208,7 @@ async def _run_parallel(rows: list[dict]) -> None:
         await lk.aclose()
 
 
-async def _run_single(phone: str, text_mode: bool = False) -> None:
+async def _run_single(phone: str) -> None:
     from livekit import api as lk_api
     phone = _clean_phone(phone)
     with open(_CONFIG_PATH, encoding="utf-8") as f:
@@ -225,7 +224,6 @@ async def _run_single(phone: str, text_mode: bool = False) -> None:
         "days_past_due":               _days_past_due(due_date),
         "account_ending":              str(cfg["accountEnding"]),
         "registered_mobile_last_four": str(cfg["registeredMobileLastFour"]),
-        "text_mode":                   text_mode,
     }
     lk = lk_api.LiveKitAPI(
         url=os.environ["LIVEKIT_URL"],
@@ -234,13 +232,9 @@ async def _run_single(phone: str, text_mode: bool = False) -> None:
     )
     try:
         room_name = f"payment-{uuid.uuid4().hex[:8]}"
-        mode_label = " [TEXT MODE]" if text_mode else ""
-        print(f"\nCalling {phone}{mode_label} (room: {room_name}) …")
+        print(f"\nCalling {phone} (room: {room_name}) …")
         await _dispatch(lk, room_name, meta)
-        if text_mode:
-            print("Call dispatched — your phone will ring. Type the caller's responses in the terminal.")
-        else:
-            print("Call dispatched — your phone will ring in ~5 s.")
+        print("Call dispatched — your phone will ring in ~5 s.")
     finally:
         await lk.aclose()
 
@@ -281,12 +275,8 @@ async def main() -> None:
                        help="Single call: E.164 phone number, e.g. +911234567890")
     group.add_argument("--csv", metavar="FILE",
                        help="Campaign CSV file, e.g. reminders.csv")
-    group.add_argument("--test", action="store_true",
-                       help="Test mode: no phone call — type both sides in the terminal")
     parser.add_argument("--mode", choices=["sequential", "parallel"], default="sequential",
                         help="Campaign mode when using --csv (default: sequential)")
-    parser.add_argument("--text", action="store_true",
-                        help="Type the caller's responses in the terminal (use with --to)")
     args = parser.parse_args()
 
     print("\n" + "=" * 62)
@@ -308,9 +298,7 @@ async def main() -> None:
         print("Agent ready.\n")
         await lk.aclose()
 
-        if args.test:
-            await _run_test()
-        elif args.csv:
+        if args.csv:
             rows = _load_csv(args.csv)
             print(f"Loaded {len(rows)} contact(s) from {args.csv}")
             if args.mode == "parallel":
@@ -318,7 +306,7 @@ async def main() -> None:
             else:
                 await _run_sequential(rows, proc=proc)
         else:
-            await _run_single(args.to, text_mode=args.text)
+            await _run_single(args.to)
 
         print("\nAgent is running — press Ctrl+C when done.")
         while True:
