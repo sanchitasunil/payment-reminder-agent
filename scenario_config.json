@@ -9,7 +9,7 @@
   "registeredMobileLastFour": "1234",
   "amountDue": "10000",
   "amountDueFormatted": "₹10,000",
-  "dueDate": "June 21, 2026",
+  "dueDate": "July 21, 2026",
   "daysPastDue": 4,
   "scenario": "normal_reminder",
   "requireIdentityVerification": true,

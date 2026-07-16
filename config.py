@@ -46,20 +46,22 @@ if STT_PROVIDER == "deepgram" and not DEEPGRAM_API_KEY:
 if STT_PROVIDER == "openai" and not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY is required when STT_PROVIDER=openai")
 
-# ── LLM provider: "gemini" (default) | "openai" | "opencode" ─────────────────
+# ── LLM provider: "gemini" (default) or "openai" ─────────────────────────────
 LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini")
 GOOGLE_API_KEY: str | None = _optional("GOOGLE_API_KEY")
-OPENCODE_API_KEY: str | None = _optional("OPENCODE_API_KEY")
 
 if LLM_PROVIDER == "gemini" and not GOOGLE_API_KEY:
     raise ValueError("GOOGLE_API_KEY is required when LLM_PROVIDER=gemini")
-if LLM_PROVIDER == "opencode" and not OPENCODE_API_KEY:
-    raise ValueError("OPENCODE_API_KEY is required when LLM_PROVIDER=opencode")
 if LLM_PROVIDER == "openai" and not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY is required when LLM_PROVIDER=openai")
 
 # ── Murf TTS (required) ───────────────────────────────────────────────────────
 MURF_API_KEY: str = _require("MURF_API_KEY")
+
+# Optional voice-id override. When set, it takes precedence over "agentVoice" in
+# scenario_config.json. Murf voice IDs look like "en-IN-anisha" — the locale is
+# the first two segments. List available voices with scripts/list_voices.py.
+MURF_VOICE_ID: str | None = _optional("MURF_VOICE_ID")
 
 # ── Human handoff — SIP transfer to human agent (optional) ────────────────────
 # Set HUMAN_TRANSFER_NUMBER to enable live SIP transfers when the agent escalates.

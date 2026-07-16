@@ -39,7 +39,16 @@ async def verify_borrower_identity(
         if outcome_log is not None:
             outcome_log.identity_verified = True
         logger.info("Identity verification succeeded")
-        return "Thank you, your identity has been confirmed."
+        # Return the real amount + due date here so the model has ground truth the
+        # instant it verifies. The prompt rebuild that injects these only fires on the
+        # NEXT user turn, so without this the model would invent an amount/date when it
+        # continues to the disclosure step in the same turn.
+        cfg = mock_data._effective_config()
+        return (
+            "Thank you, your identity has been confirmed. "
+            f"The amount due is {cfg['amountDueFormatted']} and the due date is {cfg['dueDate']}. "
+            "State exactly these values — do not change or invent any figures."
+        )
     logger.info("Identity verification failed — digits did not match")
     return (
         "I'm sorry, those details don't match what we have on file. "

@@ -58,7 +58,8 @@ from livekit.agents.voice.events import ConversationItemAddedEvent, UserInputTra
 load_dotenv()
 
 cfg = get_config()
-_VOICE = cfg["agentVoice"]
+# MURF_VOICE_ID in the .env overrides the agentVoice in scenario_config.json.
+_VOICE = config.MURF_VOICE_ID or cfg["agentVoice"]
 _voice_parts = _VOICE.split("-")
 # Murf voice IDs look like "en-US-natalie"; the locale is the first two segments.
 _LOCALE = "-".join(_voice_parts[:2])
